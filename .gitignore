@@ -7,3 +7,5 @@ env.neon
 .DS_Store
 .idea
 *.iml
+.vercel
+.env*.local

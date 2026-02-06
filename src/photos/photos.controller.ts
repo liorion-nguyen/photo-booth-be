@@ -10,9 +10,11 @@ import {
   NotFoundException,
   Req,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PhotosService } from './photos.service';
+import { PhotoShareService } from './photo-share.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { memoryStorage } from 'multer';
 
@@ -21,7 +23,10 @@ const ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 @Controller('api/photos')
 export class PhotosController {
-  constructor(private readonly photosService: PhotosService) {}
+  constructor(
+    private readonly photosService: PhotosService,
+    private readonly photoShareService: PhotoShareService,
+  ) {}
 
   @Post('upload')
   @UseGuards(JwtAuthGuard)
@@ -75,5 +80,63 @@ export class PhotosController {
   async delete(@Param('id') id: string) {
     await this.photosService.remove(id);
     return { success: true };
+  }
+
+  @Post(':id/share')
+  @UseGuards(JwtAuthGuard)
+  async createShareLink(
+    @Param('id') photoId: string,
+    @Req() req: { user: { id: string; role?: string } },
+  ): Promise<{ token: string; shareUrl: string; expiresAt: string }> {
+    const photo = await this.photosService.findOne(photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    // Check if user owns the photo or is admin
+    if (photo.userId !== req.user.id && req.user.role !== 'admin') {
+      throw new ForbiddenException('You do not have permission to share this photo');
+    }
+
+    const share = await this.photoShareService.createShareLink(photoId);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const shareUrl = `${frontendUrl}/share/${share.token}`;
+
+    return {
+      token: share.token,
+      shareUrl,
+      expiresAt: share.expiresAt.toISOString(),
+    };
+  }
+
+  @Get(':id/share')
+  @UseGuards(JwtAuthGuard)
+  async getShareLink(
+    @Param('id') photoId: string,
+    @Req() req: { user: { id: string; role?: string } },
+  ): Promise<{ token: string; shareUrl: string; expiresAt: string } | null> {
+    const photo = await this.photosService.findOne(photoId);
+    if (!photo) {
+      throw new NotFoundException('Photo not found');
+    }
+
+    // Check if user owns the photo or is admin
+    if (photo.userId !== req.user.id && req.user.role !== 'admin') {
+      throw new ForbiddenException('You do not have permission to view share link');
+    }
+
+    const share = await this.photoShareService.getShareByPhotoId(photoId);
+    if (!share) {
+      return null;
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const shareUrl = `${frontendUrl}/share/${share.token}`;
+
+    return {
+      token: share.token,
+      shareUrl,
+      expiresAt: share.expiresAt.toISOString(),
+    };
   }
 }
