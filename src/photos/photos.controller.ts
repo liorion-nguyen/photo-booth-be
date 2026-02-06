@@ -99,7 +99,10 @@ export class PhotosController {
     }
 
     const share = await this.photoShareService.createShareLink(photoId);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Use FRONTEND_URL from env, or CORS_ORIGIN, or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL || 
+                       process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 
+                       'http://localhost:3000';
     const shareUrl = `${frontendUrl}/share/${share.token}`;
 
     return {
@@ -130,7 +133,10 @@ export class PhotosController {
       return null;
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Use FRONTEND_URL from env, or CORS_ORIGIN, or default to localhost
+    const frontendUrl = process.env.FRONTEND_URL || 
+                       process.env.CORS_ORIGIN?.split(',')[0]?.trim() || 
+                       'http://localhost:3000';
     const shareUrl = `${frontendUrl}/share/${share.token}`;
 
     return {
