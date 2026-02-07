@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PhotosModule } from './photos/photos.module';
+import { FramersModule } from './framers/framers.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
 import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
@@ -48,6 +49,7 @@ import { AuthModule } from './auth/auth.module';
     UsersModule,
     AuthModule,
     PhotosModule,
+    FramersModule,
   ],
 })
 export class AppModule {}
